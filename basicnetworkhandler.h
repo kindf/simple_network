@@ -4,7 +4,7 @@
 #ifndef BASICNETWORKHANDLER_H
 #define BASICNETWORKHANDLER_H
 
-#include "common/platform/socket/pisocket.h"
+#include "def.h"
 
 class BasicNetwork;
 

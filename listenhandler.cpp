@@ -7,7 +7,6 @@
 #include <memory.h>
 
 #include "tcphandler.h"
-#include "common/platform/socket/pisocket.h"
 
 ListenHandler::ListenHandler(int accept_tcp_max_pack_szie)
 :BasicNetworkHandler(SOCKET_ERROR, HT_LISTEN), m_listen_port(0), m_accept_tcp_max_package_size(accept_tcp_max_pack_szie)
@@ -25,28 +24,32 @@ SOCKET ListenHandler::Listen(Port port, int backlog, const char *ip_bind)
 
 	if ( m_socket != SOCKET_ERROR )
 	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d m_socket != SOCKET_ERROR \n", err_msg, PISocket::Errno());
+        // TODO: 错误信息打印
+		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
+		// printf("ListenHandler::Listen FAIL %s error:%d m_socket != SOCKET_ERROR \n", err_msg, PISocket::Errno());
 
 		return m_socket;
 	}
 
-	SOCKET sock = PISocket::Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	// SOCKET sock = PISocket::Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    SOCKET sock = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if ( sock == INVALID_SOCKET )
 	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d sock == INVALID_SOCKET \n", err_msg, PISocket::Errno());
+        // TODO: 错误信息打印
+		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
+		// printf("ListenHandler::Listen FAIL %s error:%d sock == INVALID_SOCKET \n", err_msg, PISocket::Errno());
 
 		return SOCKET_ERROR;
 	}
 
-	unsigned long enable = 1;
-	if ( SOCKET_ERROR == PISocket::SetSockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(unsigned long)) )
+    int reuse = 1;
+    if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)))
 	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::SetSockopt() \n", err_msg, PISocket::Errno());
+        // TODO: 错误信息打印
+		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
+		// printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::SetSockopt() \n", err_msg, PISocket::Errno());
 
-		PISocket::Close(sock);
+        ::close(sock);
 		return SOCKET_ERROR;
 	}
 
@@ -68,35 +71,35 @@ SOCKET ListenHandler::Listen(Port port, int backlog, const char *ip_bind)
 		addr.sin_addr.s_addr = ip_n;
 	}
 	
-	if ( SOCKET_ERROR == PISocket::Bind(sock, (sockaddr*)&addr) )
+	if ( SOCKET_ERROR == ::bind(sock, (sockaddr*)&addr), sizeof(addr))
 	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::Bind() \n", err_msg, PISocket::Errno());
+        // TODO: 错误信息打印
+		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
+		// printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::Bind() \n", err_msg, PISocket::Errno());
 
-		PISocket::Close(sock);
+		::close(sock);
 		return SOCKET_ERROR;
 	}
 
 
-	if ( SOCKET_ERROR == PISocket::Listen(sock, backlog) )
+	if ( SOCKET_ERROR == ::listen(sock, backlog) )
 	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::Listen() \n", err_msg, PISocket::Errno());
+        // TODO: 错误信息打印
+		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
+		// printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::Listen() \n", err_msg, PISocket::Errno());
 
-		PISocket::Close(sock);
+		::close(sock);
 		return SOCKET_ERROR;
 	}
 
 	// 设为非阻塞
-	unsigned long b = 1;
-	if ( SOCKET_ERROR == PISocket::Ioctl(sock, FIONBIO, &b) )
-	{
-		PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
-		printf("ListenHandler::Listen FAIL %s error:%d SOCKET_ERROR == PISocket::Ioctl() \n", err_msg, PISocket::Errno());
-
-		PISocket::Close(sock);
-		return SOCKET_ERROR;
-	}
+    int flags = ::fcntl(sock, F_GETFL, 0);
+    flags |= O_NONBLOCK;
+    if ( SOCKET_ERROR == ::fcntl(sock, F_SETFL, flags) )
+    {
+        ::close(sock);
+        return SOCKET_ERROR;
+    }
 
 	m_socket = sock;
 	m_listen_port = port;
@@ -110,7 +113,8 @@ void ListenHandler::OnCanRead()
 	for (;;)
 	{
 		sockaddr_in addr;
-		SOCKET sock = PISocket::Accept(m_socket, (sockaddr*)&addr);
+        socklen_t addr_len = sizeof(in_addr);
+		SOCKET sock = ::accept(m_socket, (sockaddr*)&addr, &addr_len);
 		if (sock == INVALID_SOCKET)
 		{
 			return;
@@ -137,8 +141,8 @@ void ListenHandler::Close()
 {
 	if ( m_socket != SOCKET_ERROR )
 	{
-		PISocket::Shutdown(m_socket, PI_SD_BOTH);
-		PISocket::Close(m_socket);
+		::shutdown(m_socket, SHUT_RDWR);
+		::close(m_socket);
 		m_socket = SOCKET_ERROR;
 
 		if (m_basic_network != 0)

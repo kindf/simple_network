@@ -1,6 +1,4 @@
 
-#pragma once
-
 #ifndef LISTENHANDLER_H
 #define LISTENHANDLER_H
 

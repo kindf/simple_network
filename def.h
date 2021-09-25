@@ -2,10 +2,18 @@
 #ifndef DEF_H
 #define DEF_H
 
+#include <queue>
+
+class Job;
+
 typedef	unsigned int		NetID;
 typedef unsigned int		IP;
 typedef unsigned short		Port;
 typedef int					MsgLen;
+typedef int                 SOCKET;
+typedef std::queue<Job*>    JobQueue;
+#define SOCKET_ERROR        -1;
+#define INVALID_SOCKET      -1;
 
 class INetworkCallback
 {
@@ -14,7 +22,6 @@ public:
 	virtual void OnAccept(Port listen_port, NetID netid, IP ip, Port port)=0;
 	virtual void OnRecv(NetID netid, const char *data, unsigned int length)=0;
 	virtual void OnDisconnect(NetID netid)=0;
-	virtual void OnConnect(bool result, int handle, NetID netid, IP ip, Port port) = 0;
 };
 
 struct NetworkConfig

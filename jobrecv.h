@@ -4,23 +4,23 @@
 
 #include "def.h"
 #include "job.h"
-#include "common/platform/socket/pisocket.h"
 
 class MsgMem;
 
 class JobRecv :public Job
 {
 public:
-	JobRecv(NetID netid, MsgMem *data, MsgLen len);
+	JobRecv(NetID netid, char *data, unsigned int len);
 	virtual ~JobRecv();
 	virtual void Invoke(INetworkCallback *callback);
 
-	void *operator new(size_t c);
-	void operator delete(void *m);
+    // TODO: 内存池
+	// void *operator new(size_t c);
+	// void operator delete(void *m);
 protected:
-	MsgMem *m_data;
-	MsgLen m_length;
-	NetID m_netid;
+	char         *m_data;
+	unsigned int m_length;
+	NetID        m_netid;
 };
 
 

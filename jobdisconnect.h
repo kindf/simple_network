@@ -4,7 +4,6 @@
 #define JOBDISCONNECT_H
 
 #include "job.h"
-#include "common/platform/socket/pisocket.h"
 
 class JobDisconect:public Job
 {
@@ -14,8 +13,9 @@ public:
 
 	virtual void Invoke(INetworkCallback *callback);
 
-	void *operator new(size_t c);
-	void operator delete(void *m);
+    // TODO: 内存池
+	// void *operator new(size_t c);
+	// void operator delete(void *m);
 protected:
 	NetID m_netid;
 };
