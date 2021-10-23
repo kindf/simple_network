@@ -1,10 +1,8 @@
 
-#ifndef NETWORK_H
-#define NETWORK_H
+#pragma once
 
 #include "def.h"
 #include "basicnetwork.h"
-#include "common/platform/thread/event.h"
 #include <queue>
 
 class INetworkCallback;
@@ -42,4 +40,3 @@ inline bool Network::Send(NetID netid, const char *data, unsigned int len)
 	return m_basicnetwork.SendPackage(netid, data, len);
 }
 
-#endif

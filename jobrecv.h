@@ -1,6 +1,5 @@
 
-#ifndef JOBRECV_H
-#define JOBRECV_H
+#pragma once
 
 #include "def.h"
 #include "job.h"
@@ -22,8 +21,5 @@ protected:
 	unsigned int m_length;
 	NetID        m_netid;
 };
-
-
-#endif
 
 

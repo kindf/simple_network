@@ -50,7 +50,8 @@ void Network::Stop()
     // TODO: 线性安全
     while (!m_job_queue.empty())
     {
-        job = m_job_queue.pop_front();
+        job = m_job_queue.front();
+        m_job_queue.pop();
         delete job;
     }
 }
@@ -61,7 +62,8 @@ void Network::Update()
     // TODO: 线性安全
     while (!m_job_queue.empty())
     {
-        job = m_job_queue.pop_front();
+        job = m_job_queue.front();
+        m_job_queue.pop();
         job->Invoke(m_callback);
         delete job;
     }

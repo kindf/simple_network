@@ -1,6 +1,5 @@
 
-#ifndef LISTENHANDLER_H
-#define LISTENHANDLER_H
+#pragma once
 
 #include "def.h"
 #include "basicnetworkhandler.h"
@@ -12,14 +11,14 @@ public:
 	ListenHandler(int accept_tcp_max_pack_szie);
 	~ListenHandler();
 
-	SOCKET Listen(Port port, int backlog, const char *ip_bind=0);
+	int Listen(int port, int backlog, const char *ip_bind=0);
 
 	void OnCanRead();
 	void OnClose();
 
 protected:
 
-	Port m_listen_port;
+	int m_listen_port;
 	void Close();
 
 private:
@@ -29,4 +28,3 @@ private:
 	int m_accept_tcp_max_package_size;
 };
 
-#endif

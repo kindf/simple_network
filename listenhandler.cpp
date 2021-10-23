@@ -4,6 +4,10 @@
 #include "jobaccept.h"
 #include "basicnetwork.h"
 #include "jobdisconnect.h"
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
 #include <memory.h>
 
 #include "tcphandler.h"
@@ -18,7 +22,7 @@ ListenHandler::~ListenHandler()
 	Close();
 }
 
-SOCKET ListenHandler::Listen(Port port, int backlog, const char *ip_bind)
+int ListenHandler::Listen(int port, int backlog, const char *ip_bind)
 {
 	char err_msg[1024] = {0};
 
@@ -71,7 +75,7 @@ SOCKET ListenHandler::Listen(Port port, int backlog, const char *ip_bind)
 		addr.sin_addr.s_addr = ip_n;
 	}
 	
-	if ( SOCKET_ERROR == ::bind(sock, (sockaddr*)&addr), sizeof(addr))
+	if ( SOCKET_ERROR == ::bind(sock, (struct sockaddr*)&addr, sizeof(addr)))
 	{
         // TODO: 错误信息打印
 		// PISocket::GetErrStr(PISocket::Errno(), err_msg, sizeof(err_msg));
@@ -94,7 +98,7 @@ SOCKET ListenHandler::Listen(Port port, int backlog, const char *ip_bind)
 
 	// 设为非阻塞
     int flags = ::fcntl(sock, F_GETFL, 0);
-    flags |= O_NONBLOCK;
+    flags |= SOCK_NONBLOCK;
     if ( SOCKET_ERROR == ::fcntl(sock, F_SETFL, flags) )
     {
         ::close(sock);
@@ -112,9 +116,9 @@ void ListenHandler::OnCanRead()
 {
 	for (;;)
 	{
-		sockaddr_in addr;
-        socklen_t addr_len = sizeof(in_addr);
-		SOCKET sock = ::accept(m_socket, (sockaddr*)&addr, &addr_len);
+		struct sockaddr_in addr;
+        socklen_t addr_len = sizeof(struct sockaddr_in);
+		SOCKET sock = ::accept(m_socket, (struct sockaddr*)&addr, &addr_len);
 		if (sock == INVALID_SOCKET)
 		{
 			return;
@@ -126,7 +130,7 @@ void ListenHandler::OnCanRead()
 			TcpHandler *tchhandler = new TcpHandler(sock, m_accept_tcp_max_package_size);
 			NetID netid = m_basic_network->Add(tchhandler);
 
-			JobAccept *jobaccept = new JobAccept(netid, sock, m_listen_port, m_basic_network);
+			JobAccept *jobaccept = new JobAccept(netid, sock, m_listen_port);
 			m_basic_network->PushJob(jobaccept);
 		}
 	}

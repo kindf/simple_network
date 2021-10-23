@@ -4,18 +4,15 @@
 
 #include "jobaccept.h"
 
-JobAccept::JobAccept(NetID netid, SOCKET sock, Port port):m_netid(netid), m_accept_sock(sock), m_listen_port(port)
-{
+JobAccept::JobAccept(NetID netid, SOCKET sock, Port port):m_netid(netid), m_accept_sock(sock), m_listen_port(port) {
 
 }
 
-JobAccept::~JobAccept()
-{
+JobAccept::~JobAccept() {
 
 }
 
-void JobAccept::Invoke(INetworkCallback *callback)
-{
+void JobAccept::Invoke(INetworkCallback *callback) {
     sockaddr_in addr;
     socklen_t len = sizeof(sockaddr_in);
     ::getpeername(m_accept_sock, (struct sockaddr*)&addr, &len);

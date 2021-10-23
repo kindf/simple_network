@@ -1,5 +1,6 @@
 
 #include "basicnetwork.h"
+#include <unistd.h>
 #include "job.h"
 
 
@@ -18,7 +19,7 @@ void BasicNetwork::Start()
     if (m_is_exit)
     {
         m_is_exit = false;
-        m_work_thread.Run(ThreadFunc, this, 0);
+        m_work_thread = new thread(BasicNetwork::ThreadFunc, this);
     }
 }
 
@@ -27,7 +28,7 @@ void BasicNetwork::Stop()
     if (!m_is_exit)
     {
         m_is_exit = true;
-        m_work_thread.Join();
+        m_work_thread->join();
     }
 }
 
@@ -66,8 +67,8 @@ void BasicNetwork::Clear()
     ReleaseSocket();
     for (RegisterTableIter iter = m_register_table.begin() ; iter != m_register_table.end(); ++iter)
     {
-        iter->handler->OnClose();
-        delete iter->handler;
+        iter->second.handler->OnClose();
+        delete iter->second.handler;
     }
     m_register_table_mutex.unlock();
 
@@ -105,7 +106,7 @@ void BasicNetwork::DeleteDirtySocket()
             }
 
             //先删除BasicNetwork中的信息，再调用OnClose
-            BasicNetworkHandler *handler = item_erase->handler;
+            BasicNetworkHandler *handler = item_erase->second.handler;
             SOCKET sock = handler->GetSocket();
             m_register_table.erase(*iter);
             handler->OnClose();             // 这里有点问题，这里限制了OnClose里面不能调用BasicNetwork中加锁的接口!*****************************
@@ -125,15 +126,8 @@ void BasicNetwork::PushJobToInvoke()
     while (!m_job_to_push.empty())
     {
         Job *job = m_job_to_push.front();
-
-        if (m_job_queue->push(job))
-        {
-            m_job_to_push.pop();
-        }
-        else
-        {
-            break;
-        }
+        m_job_queue->push(job);
+        m_job_to_push.pop();
     }
 }
 
@@ -154,10 +148,10 @@ bool BasicNetwork::UnregisterWrite(NetID netid, int num)
         return false;
     }
 
-    iter->write_event -= num;
-    if (iter->write_event == 0)
+    iter->second.write_event -= num;
+    if (iter->second.write_event == 0)
     {
-        UnregisterSocketWrite(iter->handler);
+        UnregisterSocketWrite(iter->second.handler);
     }
 
     m_register_table_mutex.unlock();
@@ -166,13 +160,14 @@ bool BasicNetwork::UnregisterWrite(NetID netid, int num)
 }
 
 //工作线程的主循环函数
-DWORD BasicNetwork::ThreadFunc(void *param)
+void BasicNetwork::ThreadFunc(void *param)
 {
     BasicNetwork *pthis = (BasicNetwork*) param;
-    return pthis->WorkFunc();
+    pthis->WorkFunc();
+    return;
 }
 
-DWORD BasicNetwork::WorkFunc()
+void BasicNetwork::WorkFunc()
 {
     HandlerList vector_can_read;
     HandlerList vector_can_write;
@@ -181,17 +176,16 @@ DWORD BasicNetwork::WorkFunc()
     {
         if (m_is_exit)
         {
-            return 0;
+            return;
         }
 
         DeleteDirtySocket();
         PushJobToInvoke();
 
         m_register_table_mutex.lock();
-        if (m_register_table.Size() == 0)
+        if (m_register_table.size() == 0)
         {
             m_register_table_mutex.unlock();
-            PISleep(10);
             continue;
         }
         m_register_table_mutex.unlock();
@@ -212,7 +206,7 @@ DWORD BasicNetwork::WorkFunc()
         vector_can_write.clear();
     }
     DeleteDirtySocket();
-    return 0;
+    return;
 }
 
 void BasicNetwork::InitSocket()

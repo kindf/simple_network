@@ -1,9 +1,7 @@
 
-#ifndef DEF_H
-#define DEF_H
+#pragma once
 
 #include <queue>
-
 class Job;
 
 typedef	unsigned int		NetID;
@@ -12,8 +10,8 @@ typedef unsigned short		Port;
 typedef int					MsgLen;
 typedef int                 SOCKET;
 typedef std::queue<Job*>    JobQueue;
-#define SOCKET_ERROR        -1;
-#define INVALID_SOCKET      -1;
+#define SOCKET_ERROR        -1
+#define INVALID_SOCKET      -1
 
 class INetworkCallback
 {
@@ -34,6 +32,4 @@ struct NetworkConfig
 	int job_queue_length;
 	int max_package_size;
 };
-
-#endif
 

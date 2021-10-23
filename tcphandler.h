@@ -29,6 +29,8 @@ protected:
 private:
 	TcpHandler(const TcpHandler&);
 	TcpHandler& operator=(const TcpHandler&);
+
+    int m_socket;
 };
 
 
