@@ -127,8 +127,8 @@ void ListenHandler::OnCanRead()
 		// 所有类型的Job考虑用池
 		if (m_basic_network != 0)
 		{
-			TcpHandler *tchhandler = new TcpHandler(sock, m_accept_tcp_max_package_size);
-			NetID netid = m_basic_network->Add(tchhandler);
+			TcpHandler *tcphandler = new TcpHandler(sock, m_accept_tcp_max_package_size);
+			NetID netid = m_basic_network->Add(tcphandler);
 
 			JobAccept *jobaccept = new JobAccept(netid, sock, m_listen_port);
 			m_basic_network->PushJob(jobaccept);

@@ -4,7 +4,9 @@
 #include "def.h"
 #include "basicnetwork.h"
 #include <queue>
+#include <mutex>
 
+using namespace std;
 class INetworkCallback;
 class job;
 
@@ -28,13 +30,13 @@ public:
 protected:
 	NetworkConfig m_config;
     JobQueue m_job_queue;
+    mutex m_job_queue_mutex;
 	BasicNetwork m_basicnetwork;
 	INetworkCallback *m_callback;
 	INetworkCallback *m_default_callback;
 
 };
 
-// 每秒几十W次
 inline bool Network::Send(NetID netid, const char *data, unsigned int len)
 {	
 	return m_basicnetwork.SendPackage(netid, data, len);

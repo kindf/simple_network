@@ -1,18 +1,28 @@
 
 #pragma once
 
-#ifndef TCPHANDLER_H
-#define TCPHANDLER_H
-
-#include <memory.h>
+#include <memory>
+#include <mutex>
+#include <list>
 
 #include "def.h"
 #include "basicnetworkhandler.h"
+
+using namespace std;
+
+class WriteObject {
+    public:
+        streamsize start;
+        streamsize len;
+        shared_ptr<char> buff;
+};
 
 class TcpHandler : public BasicNetworkHandler
 {
 public:
 	TcpHandler(SOCKET socket, int max_package_size);
+	TcpHandler(const TcpHandler&) = delete;
+	TcpHandler& operator=(const TcpHandler&) = delete;
 	~TcpHandler();
 
 	void OnCanRead();
@@ -21,17 +31,19 @@ public:
 
 protected:
 	friend class BasicNetwork;
-	bool SendPackage(const char *buffer, unsigned int len)
-	{
-		return true;
-	}
+	bool SendPackage(const char *buffer, unsigned int len);
 
 private:
-	TcpHandler(const TcpHandler&);
-	TcpHandler& operator=(const TcpHandler&);
 
-    int m_socket;
+// 写相关
+private:
+    list<shared_ptr<WriteObject>> objs;  // 待写块
+public:
+    void EntireWrite(shared_ptr<char> buff, streamsize len);
+    /* void LingerClose(); //全部发完完再关闭 */
+    void OnWriteable();
+private:
+    void EntireWriteWhenEmpty(shared_ptr<char> buff, streamsize len);
+    void EntireWriteWhenNotEmpty(shared_ptr<char> buff, streamsize len);
+    bool WriteFrontObj();
 };
-
-
-#endif

@@ -1,6 +1,7 @@
 
-#include "basicnetwork.h"
 #include <unistd.h>
+#include <iostream>
+#include "basicnetwork.h"
 #include "job.h"
 
 
@@ -34,7 +35,7 @@ void BasicNetwork::Stop()
 
 NetID BasicNetwork::Add(BasicNetworkHandler *handler)
 {
-    m_register_table_mutex.lock();
+    lock_guard<mutex> lk(m_register_table_mutex);
 
     RegisterTableItem item;
     item.handler = handler;
@@ -46,7 +47,6 @@ NetID BasicNetwork::Add(BasicNetworkHandler *handler)
 
     AddSocket(handler);
 
-    m_register_table_mutex.unlock();
     int ret = m_netid;
     m_netid++;
     return ret;
@@ -54,27 +54,28 @@ NetID BasicNetwork::Add(BasicNetworkHandler *handler)
 
 void BasicNetwork::Remove(NetID netid)
 {
-    m_dirty_queue_mutex.lock();
+    lock_guard<mutex> lk(m_dirty_queue_mutex);
     m_dirty_queue.push_back(netid);
-    m_dirty_queue_mutex.unlock();
 }
 
 void BasicNetwork::Clear()
 {
     Stop();
 
-    m_register_table_mutex.lock();
-    ReleaseSocket();
-    for (RegisterTableIter iter = m_register_table.begin() ; iter != m_register_table.end(); ++iter)
     {
-        iter->second.handler->OnClose();
-        delete iter->second.handler;
+        lock_guard<mutex> lk(m_register_table_mutex);
+        ReleaseSocket();
+        for (RegisterTableIter iter = m_register_table.begin() ; iter != m_register_table.end(); ++iter)
+        {
+            iter->second.handler->OnClose();
+            delete iter->second.handler;
+        }
     }
-    m_register_table_mutex.unlock();
 
-    m_dirty_queue_mutex.lock();
-    m_dirty_queue.clear();
-    m_dirty_queue_mutex.unlock();
+    {
+        lock_guard<mutex> lk(m_dirty_queue_mutex);
+        m_dirty_queue.clear();
+    }
 
     while (!m_job_to_push.empty())
     {
@@ -90,13 +91,14 @@ void BasicNetwork::DeleteDirtySocket()
 {
     //清理dirty socket
     DirtyQueue temp_queue;
-    m_dirty_queue_mutex.lock();
-    m_dirty_queue.swap(temp_queue);
-    m_dirty_queue_mutex.unlock();
+    {
+        lock_guard<mutex> lk(m_dirty_queue_mutex);
+        m_dirty_queue.swap(temp_queue);
+    }
 
     if (temp_queue.size() != 0)
     {
-        m_register_table_mutex.lock();
+        lock_guard<mutex> lk(m_register_table_mutex);
         for (DirtyQueue::iterator iter = temp_queue.begin(); iter != temp_queue.end(); ++ iter)
         {
             RegisterTableIter item_erase = m_register_table.find(*iter);
@@ -109,42 +111,43 @@ void BasicNetwork::DeleteDirtySocket()
             BasicNetworkHandler *handler = item_erase->second.handler;
             SOCKET sock = handler->GetSocket();
             m_register_table.erase(*iter);
-            handler->OnClose();             // 这里有点问题，这里限制了OnClose里面不能调用BasicNetwork中加锁的接口!*****************************
-                                            // 因为在Linux下pthread_mutex_t是非递归锁
-
+            handler->OnClose();
             RemoveSocket(sock);
             delete handler;
 
         }
-        m_register_table_mutex.unlock();
     }
 }
 
+// 工作线程调用
 void BasicNetwork::PushJobToInvoke()
 {
-    // TODO: 线程安全
     while (!m_job_to_push.empty())
     {
         Job *job = m_job_to_push.front();
-        m_job_queue->push(job);
+        {
+        // m_job_queue在主线程和工作线程均有使用，需要考虑线程安全
+            lock_guard<mutex> lk(m_job_queue_mutex);
+            m_job_queue->push(job);
+        }
         m_job_to_push.pop();
     }
 }
 
+// 工作线程调用
 void BasicNetwork::PushJob(Job * job)
 {
-    // TODO: 线程安全
+    // m_job_to_push只在工作线程中使用，不需要考虑线程安全问题
     m_job_to_push.push(job);
 }
 
 bool BasicNetwork::UnregisterWrite(NetID netid, int num)
 {
-    m_register_table_mutex.lock();
+    lock_guard<mutex> lk(m_register_table_mutex);
 
     BasicNetwork::RegisterTableIter iter = m_register_table.find(netid);
     if (iter == m_register_table.end())
     {
-        m_register_table_mutex.unlock();
         return false;
     }
 
@@ -153,9 +156,6 @@ bool BasicNetwork::UnregisterWrite(NetID netid, int num)
     {
         UnregisterSocketWrite(iter->second.handler);
     }
-
-    m_register_table_mutex.unlock();
-
     return true;
 }
 
@@ -182,13 +182,13 @@ void BasicNetwork::WorkFunc()
         DeleteDirtySocket();
         PushJobToInvoke();
 
-        m_register_table_mutex.lock();
-        if (m_register_table.size() == 0)
         {
-            m_register_table_mutex.unlock();
-            continue;
+            lock_guard<mutex> lk(m_register_table_mutex);
+            if (m_register_table.size() == 0)
+            {
+                continue;
+            }
         }
-        m_register_table_mutex.unlock();
 
         PollSocket(&vector_can_read, &vector_can_write);
 
@@ -228,6 +228,7 @@ void BasicNetwork::AddSocket(BasicNetworkHandler* handler)
     if (epoll_ctl(m_epfd, EPOLL_CTL_ADD, sock_fd, &ev) == -1)
     {
         // 添加失败
+        cout << "add socket faild!!! fd: " << sock_fd << endl;
     }
 }
 
@@ -237,6 +238,7 @@ void BasicNetwork::RemoveSocket(SOCKET sock_remove)
     if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, sock_remove, &ev) == -1)
     {
         // 删除失败
+        cout << "remove socket faild!!! fd: " << sock_remove << endl;
     }
 }
 
@@ -269,7 +271,7 @@ void BasicNetwork::PollSocket(HandlerList *readhandler, HandlerList *writehandle
     int eret = epoll_wait(m_epfd, m_tmp_event, MAX_EPOLL_SIZE, 10);
     if (eret > 0)
     {
-        m_register_table_mutex.lock();
+        lock_guard<mutex> lk(m_register_table_mutex);
         for (int i = 0; i < eret; ++i)
         {
             if (m_tmp_event[i].events & EPOLLIN)
@@ -281,7 +283,6 @@ void BasicNetwork::PollSocket(HandlerList *readhandler, HandlerList *writehandle
                 writehandler->push_back((BasicNetworkHandler*)m_tmp_event[i].data.ptr);
             }
         }
-        m_register_table_mutex.unlock();
     }
 }
 

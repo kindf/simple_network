@@ -66,6 +66,7 @@ private:
 
 	JobTempList m_job_to_push;
 	JobQueue *m_job_queue;
+    mutex m_job_queue_mutex;
 
 	void DeleteDirtySocket();
 	void PushJobToInvoke();
@@ -88,8 +89,19 @@ private:
 
 
 #include "tcphandler.h"
-inline bool BasicNetwork::SendPackage(NetID netid, const char *buffer, unsigned int len)
-{
-    return true;
+inline bool BasicNetwork::SendPackage(NetID netid, const char *buffer, unsigned int len) {
+    lock_guard<mutex> lk(m_register_table_mutex);
+    RegisterTableIter iter = m_register_table.find(netid);
+    if(iter == m_register_table.end()) {
+        return false;
+    }
+    TcpHandler *handler = (TcpHandler*)(iter->second.handler);
+    if(handler != NULL) {
+        if(!handler->SendPackage(buffer, len)) {
+            return false;
+        }
+        return true;
+    }
+    return false;
 }
 

@@ -47,7 +47,7 @@ void Network::Stop()
 {
     m_basicnetwork.Stop();
     Job *job;
-    // TODO: 线性安全
+    lock_guard<mutex> lk(m_job_queue_mutex);
     while (!m_job_queue.empty())
     {
         job = m_job_queue.front();
@@ -59,7 +59,7 @@ void Network::Stop()
 void Network::Update()
 {
     Job *job;
-    // TODO: 线性安全
+    lock_guard<mutex> lk(m_job_queue_mutex);
     while (!m_job_queue.empty())
     {
         job = m_job_queue.front();
