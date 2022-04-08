@@ -7,7 +7,7 @@ help:
 	@echo "make check 代码静态检查"
 
 build:
-	g++ -g -pthread -o test ./*.cpp
+	g++ -g -pthread -o test main.cpp ./src/*.cpp -I ./include
 
 check:
 	cppcheck ./
