@@ -14,5 +14,5 @@ JobRecv::~JobRecv() {
 
 void JobRecv::Invoke(INetworkCallback *callback) {
     // 回调
-    callback->OnRecv(m_netid, (const char *)m_data, (unsigned int)m_length);
+    callback->OnRecv(m_netid, m_data, (unsigned int)m_length);
 }

@@ -24,7 +24,7 @@ ListenHandler::~ListenHandler()
 
 int ListenHandler::Listen(int port, int backlog, const char *ip_bind)
 {
-	char err_msg[1024] = {0};
+	/* char err_msg[1024] = {0}; */
 
 	if ( m_socket != SOCKET_ERROR )
 	{

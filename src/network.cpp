@@ -46,26 +46,30 @@ void Network::Start()
 void Network::Stop()
 {
     m_basicnetwork.Stop();
-    Job *job;
+    Job *job = NULL;
     lock_guard<mutex> lk(m_job_queue_mutex);
     while (!m_job_queue.empty())
     {
         job = m_job_queue.front();
-        m_job_queue.pop();
-        delete job;
+        if(job != NULL) {
+            m_job_queue.pop();
+            delete job;
+        }
     }
 }
 
 void Network::Update()
 {
-    Job *job;
+    Job *job = NULL;
     lock_guard<mutex> lk(m_job_queue_mutex);
     while (!m_job_queue.empty())
     {
         job = m_job_queue.front();
         m_job_queue.pop();
-        job->Invoke(m_callback);
-        delete job;
+        if(job != NULL) {
+            job->Invoke(m_callback);
+            delete job;
+        }
     }
 }
 

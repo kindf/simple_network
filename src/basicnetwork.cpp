@@ -162,7 +162,7 @@ bool BasicNetwork::UnregisterWrite(NetID netid, int num)
 //工作线程的主循环函数
 void BasicNetwork::ThreadFunc(void *param)
 {
-    BasicNetwork *pthis = (BasicNetwork*) param;
+    BasicNetwork *pthis = static_cast<BasicNetwork*>(param);
     pthis->WorkFunc();
     return;
 }
@@ -224,7 +224,7 @@ void BasicNetwork::AddSocket(BasicNetworkHandler* handler)
     SOCKET sock_fd = handler->GetSocket();
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLET;
-    ev.data.ptr = (void *)handler;
+    ev.data.ptr = static_cast<void*>(handler);
     if (epoll_ctl(m_epfd, EPOLL_CTL_ADD, sock_fd, &ev) == -1)
     {
         // 添加失败
@@ -247,7 +247,7 @@ void BasicNetwork::RegisterSocketWrite(BasicNetworkHandler* handler)
     SOCKET sock = handler->GetSocket();
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
-    ev.data.ptr = (void *)handler;
+    ev.data.ptr = static_cast<void*>(handler);
     if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, sock, &ev) == -1)
     {
         // 注册写失败
@@ -259,7 +259,7 @@ void BasicNetwork::UnregisterSocketWrite(BasicNetworkHandler* handler)
     SOCKET sock = handler->GetSocket();
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLET;
-    ev.data.ptr = (void *)handler;
+    ev.data.ptr = static_cast<void*>(handler);
     if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, sock, &ev) == -1)
     {
         // 反注册写失败
@@ -276,11 +276,11 @@ void BasicNetwork::PollSocket(HandlerList *readhandler, HandlerList *writehandle
         {
             if (m_tmp_event[i].events & EPOLLIN)
             {
-                readhandler->push_back((BasicNetworkHandler*)m_tmp_event[i].data.ptr);
+                readhandler->push_back(static_cast<BasicNetworkHandler*> (m_tmp_event[i].data.ptr));
             }
             if (m_tmp_event[i].events & EPOLLOUT)
             {
-                writehandler->push_back((BasicNetworkHandler*)m_tmp_event[i].data.ptr);
+                writehandler->push_back(static_cast<BasicNetworkHandler*>(m_tmp_event[i].data.ptr));
             }
         }
     }

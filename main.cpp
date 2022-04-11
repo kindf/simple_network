@@ -5,6 +5,7 @@
 
 class TestCallback: public INetworkCallback {
     public:
+        TestCallback():net(NULL){};
         virtual void OnAccept(Port listen_port, NetID netid, IP ip, Port port){
         };
 
