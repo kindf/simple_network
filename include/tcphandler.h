@@ -7,6 +7,7 @@
 
 #include "def.h"
 #include "basicnetworkhandler.h"
+#include "network_buffer.h"
 
 using namespace std;
 
@@ -35,7 +36,7 @@ protected:
 
 private:
 
-// 写相关
+// 发送相关
 private:
     list<shared_ptr<WriteObject>> objs;  // 待写块
 public:
@@ -46,4 +47,9 @@ private:
     void EntireWriteWhenEmpty(shared_ptr<char> buff, streamsize len);
     void EntireWriteWhenNotEmpty(shared_ptr<char> buff, streamsize len);
     bool WriteFrontObj();
+
+// 接收相关
+private:
+    RecvNetworkBuffer* m_recv_buffer{ nullptr };
+
 };

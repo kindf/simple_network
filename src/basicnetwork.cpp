@@ -20,7 +20,11 @@ void BasicNetwork::Start()
     if (m_is_exit)
     {
         m_is_exit = false;
-        m_work_thread = new thread(BasicNetwork::ThreadFunc, this);
+        /* m_work_thread = new thread(BasicNetwork::ThreadFunc, this); */
+        m_work_thread = new thread([this](){
+            this->WorkFunc();
+            return;
+        });
     }
 }
 
@@ -159,14 +163,6 @@ bool BasicNetwork::UnregisterWrite(NetID netid, int num)
     return true;
 }
 
-//工作线程的主循环函数
-void BasicNetwork::ThreadFunc(void *param)
-{
-    BasicNetwork *pthis = static_cast<BasicNetwork*>(param);
-    pthis->WorkFunc();
-    return;
-}
-
 void BasicNetwork::WorkFunc()
 {
     HandlerList vector_can_read;
@@ -263,6 +259,7 @@ void BasicNetwork::UnregisterSocketWrite(BasicNetworkHandler* handler)
     if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, sock, &ev) == -1)
     {
         // 反注册写失败
+        cout << "UnregisterSocketWrite failed! fd:" << sock << endl;
     }
 }
 

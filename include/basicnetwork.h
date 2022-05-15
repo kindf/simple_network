@@ -70,7 +70,6 @@ private:
 
 	void DeleteDirtySocket();
 	void PushJobToInvoke();
-	static void ThreadFunc(void *param); //线程函数
 	void WorkFunc();
 
 	void InitSocket();

@@ -23,6 +23,8 @@ TcpHandler::TcpHandler(SOCKET socket, int max_package_size)
         flags |= O_NONBLOCK;
         ::fcntl(m_socket, F_SETFL, flags);
     }
+    m_recv_buffer = new RecvNetworkBuffer();
+    /* assert(m_recv_buffer ~= nullptr); */
 }
 
 
@@ -36,17 +38,19 @@ void TcpHandler::OnCanRead() {
 		return;
 	}
 
-	char buff[MSG_READ_BUFF_LEN];
+    char *p = nullptr;
+    int total_size = 0;
 
 	for (;;)
 	{
-		int ret = ::recv(m_socket, buff, MSG_READ_BUFF_LEN, 0);
-		if (ret <= 0)
+        const int empty_size = m_recv_buffer->GetBuffer(p);
+		int data_size = ::recv(m_socket, p, empty_size, 0);
+		if (data_size <= 0)
 		{
 			if (errno == EWOULDBLOCK || errno == EAGAIN)
 			{
 				// 读缓冲区空，等待下次可读时间
-				return;
+				break;
 			}
 			// 出错
 			if (m_basic_network != 0)
@@ -55,12 +59,25 @@ void TcpHandler::OnCanRead() {
 			}
 			return;
 		}
-        if(m_basic_network != 0){
-            /* cout << "msg come!!! msg: " << buff << endl; */
-            JobRecv *jobrecv = new JobRecv(m_netid, buff, ret);
+        m_recv_buffer->FillData(data_size);
+        total_size += data_size;
+	}
+
+    if(m_basic_network != 0 && total_size > 0){
+        cout << "msg come!!! total_size: " << total_size << endl;
+        char temp[total_size + 1];
+        m_recv_buffer->MemcpyFromBuffer(temp, total_size);
+        cout << "msg come!!! temp: " << temp << endl << endl;
+        /* JobRecv *jobrecv = new JobRecv(m_netid, buff, ret); */
+        /* m_basic_network->PushJob(jobrecv); */
+        while(true) {
+            JobRecv *jobrecv = m_recv_buffer->GetPatch(m_netid);
+            if(jobrecv == nullptr) {
+                break;
+            }
             m_basic_network->PushJob(jobrecv);
         }
-	}
+    }
 }
 
 void TcpHandler::OnCanWrite() {
