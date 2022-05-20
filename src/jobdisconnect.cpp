@@ -2,7 +2,7 @@
 #include "def.h"
 #include "jobdisconnect.h"
 
-JobDisconect::JobDisconect(NetID netid):m_netid(netid)
+JobDisconect::JobDisconect(NetID netid): m_netid(netid)
 {
 
 }

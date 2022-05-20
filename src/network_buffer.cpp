@@ -92,8 +92,8 @@ JobRecv* RecvNetworkBuffer::GetPatch(unsigned int netid) {
     if(m_data_size < header.msg_len) {
         return nullptr;
     }
-    RemoveData(sizeof(MessageHeader));
-    char temp[header.msg_len+1];
+    /* RemoveData(sizeof(MessageHeader)); */
+    char temp[header.msg_len];
     MemcpyFromBuffer(temp, header.msg_len);
     RemoveData(header.msg_len);
     JobRecv *jobrecv = new JobRecv(netid, temp, header.msg_len);

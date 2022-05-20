@@ -45,8 +45,14 @@ void TcpHandler::OnCanRead() {
 	{
         const int empty_size = m_recv_buffer->GetBuffer(p);
 		int data_size = ::recv(m_socket, p, empty_size, 0);
-		if (data_size <= 0)
-		{
+        if(data_size == 0) {
+			if (m_basic_network != 0)
+			{
+				m_basic_network->Remove(m_netid);
+			}
+            cout << "[TcpHandler::OnCanRead] socket close." << endl;
+            return;
+        } else if(data_size < 0) {
 			if (errno == EWOULDBLOCK || errno == EAGAIN)
 			{
 				// 读缓冲区空，等待下次可读时间
@@ -64,10 +70,10 @@ void TcpHandler::OnCanRead() {
 	}
 
     if(m_basic_network != 0 && total_size > 0){
-        cout << "msg come!!! total_size: " << total_size << endl;
-        char temp[total_size + 1];
-        m_recv_buffer->MemcpyFromBuffer(temp, total_size);
-        cout << "msg come!!! temp: " << temp << endl << endl;
+        cout << "[TcpHandler::OnCanRead] msg come!!! total_size: " << total_size << endl;
+        /* char temp[total_size + 1]; */
+        /* m_recv_buffer->MemcpyFromBuffer(temp, total_size); */
+        /* cout << "[TcpHandler::OnCanRead] msg come!!! temp: " << temp << endl << endl; */
         /* JobRecv *jobrecv = new JobRecv(m_netid, buff, ret); */
         /* m_basic_network->PushJob(jobrecv); */
         while(true) {

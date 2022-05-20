@@ -4,7 +4,12 @@
 #include "listenhandler.h"
 #include "tcphandler.h"
 #include <memory.h>
+#include <iostream>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
+using namespace std;
 
 class DefaultCallback:public INetworkCallback
 {
@@ -13,6 +18,7 @@ public:
     virtual void OnAccept(Port listen_port, NetID netid, IP ip, Port port){}
     virtual void OnRecv(NetID netid, const char *data, unsigned int length){}
     virtual void OnDisconnect(NetID netid){}
+    virtual void OnConnect(bool result, int handler, NetID netid, IP ip, Port port){}
 };
 
 
@@ -97,4 +103,52 @@ void Network::Disconnect(NetID id)
     m_basicnetwork.Remove(id);
 }
 
+bool Network::Connect(const char* ip, unsigned short port, unsigned int* net_id, unsigned long time_out) {
+    bool ret = true;
+    NetID netid;
+    IP ip_host;
+    do {
+        unsigned long ip_n = inet_addr(ip);
+        if(ip_n == INADDR_NONE) {
+            ret = false;
+            break;
+        }
+        ip_host = ntohl(ip_n);
+        SOCKET sock = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if( sock == INVALID_SOCKET ){
+            cout << "[Network::Connect] connect socket create failed" << endl;
+            ret = false;
+            break;
+        }
+        sockaddr_in addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(ip_host);
+        addr.sin_port = htons(port);
+
+        /* int flags = ::fcntl(sock, F_GETFL, 0); */
+        /* flags |= SOCK_NONBLOCK; */
+        /* if ( SOCKET_ERROR == ::fcntl(sock, F_SETFL, flags) ) */
+        /* { */
+        /*     ::close(sock); */
+        /*     cout << "[Network::Connect] set nonblock failed" << endl; */
+        /*     return false; */
+        /* } */
+
+        if(::connect(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+            cout << "[Network::Connect] connect failed" << endl;
+            ::close(sock);
+            ret = false;
+            break;
+        }
+        // connect成功
+        TcpHandler *h = new TcpHandler(sock, m_config.max_package_size);
+        netid = m_basicnetwork.Add(h);
+        if(net_id != nullptr) {
+            *net_id = netid;
+        }
+    }while(false);
+    m_callback->OnConnect(ret, 0, netid, ip_host, port);
+    return ret;
+}
 

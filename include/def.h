@@ -2,6 +2,8 @@
 #pragma once
 
 #include <queue>
+/* #include <function> */
+
 class Job;
 
 typedef	unsigned int		NetID;
@@ -20,7 +22,10 @@ public:
 	virtual void OnAccept(Port listen_port, NetID netid, IP ip, Port port)=0;
 	virtual void OnRecv(NetID netid, const char *data, unsigned int length)=0;
 	virtual void OnDisconnect(NetID netid)=0;
+    virtual void OnConnect(bool result, int handler, NetID netid, IP ip, Port port) = 0;
 };
+
+/* typedef std::function<void(Port, NetID, IP, Port)> OnAcceptFunc; */
 
 struct NetworkConfig
 {

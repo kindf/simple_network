@@ -1,5 +1,5 @@
 
-.PHONY: build check help version
+.PHONY: build check help version client
 
 help:
 	@echo "支持下面命令:"
@@ -11,6 +11,9 @@ build:
 
 check:
 	cppcheck ./
+
+client:
+	g++ -g -pthread -o client client.cpp ./src/*.cpp -I ./include
 
 version:
 	@git log --pretty=format:"%h%x09%an%x09%ad%x09%s" --date=relative -20

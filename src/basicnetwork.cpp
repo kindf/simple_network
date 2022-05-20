@@ -268,7 +268,6 @@ void BasicNetwork::PollSocket(HandlerList *readhandler, HandlerList *writehandle
     int eret = epoll_wait(m_epfd, m_tmp_event, MAX_EPOLL_SIZE, 10);
     if (eret > 0)
     {
-        lock_guard<mutex> lk(m_register_table_mutex);
         for (int i = 0; i < eret; ++i)
         {
             if (m_tmp_event[i].events & EPOLLIN)

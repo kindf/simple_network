@@ -27,6 +27,7 @@ public:
 	void Disconnect(NetID id);
 
 	bool Send(NetID netid, const char *data, unsigned int len);
+    bool Connect(const char* ip, unsigned short port, unsigned int* net_id, unsigned long time_out);
 protected:
 	NetworkConfig m_config;
     JobQueue m_job_queue;
